@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vue.js with Spring Boot</title>
+<script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>Departments</h1>
+
+        <!-- 新增部門表單 -->
+        <form @submit.prevent="addDepartment">
+            <label for="deptName">部門名稱:</label>
+            <input type="text" id="deptName" v-model="newDeptName" placeholder="輸入部門名稱" required>
+            <button type="submit">新增部門</button>
+        </form>
+
+        <!-- 編輯部門表單 -->
+        <div v-if="editingDept">
+            <h2>修改部門</h2>
+            <label for="editDeptName">部門名稱:</label>
+            <input type="text" id="editDeptName" v-model="editingDept.name" placeholder="輸入部門名稱" required>
+            <button @click="updateDepartment">確認修改</button>
+            <button @click="cancelEdit">取消</button>
+        </div>
+
+        <!-- 錯誤與加載顯示 -->
+        <div v-if="loading">Loading...</div>
+        <div v-if="error" style="color: red;">Error: {{ error }}</div>
+
+        <!-- 部門列表 -->
+        <template v-if="departments.length">
+            <table>
+                <thead>
+                    <tr>
+                        <th>用戶ID</th>
+                        <th>部門名稱</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="dept in departments" :key="dept.id">
+                        <td>{{ dept.id }}</td>
+                        <td>{{ dept.name }}</td>
+                        <td>
+                            <button @click="startEdit(dept)">修改</button>
+                            <button @click="deleteDepartment(dept.id)">刪除</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </template>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue;
+
+        createApp({
+            setup() {
+                const departments = ref([]);
+                const loading = ref(false);
+                const error = ref(null);
+                const newDeptName = ref('');
+                const editingDept = ref(null);
+
+                // Fetch departments data and handle response
+                const fetchData = () => {
+                    loading.value = true;
+                    error.value = null;
+
+                    axios.get('/depts')
+                        .then(response => {
+                            departments.value = response.data.data;
+                        })
+                        .catch(e => {
+                            error.value = e.message;
+                        })
+                        .finally(() => {
+                            loading.value = false;
+                        });
+                };
+
+                // Add a new department
+                const addDepartment = () => {
+                    if (!newDeptName.value.trim()) {
+                        alert('部門名稱不能為空');
+                        return;
+                    }
+
+                    axios.post('/depts', { name: newDeptName.value })
+                        .then(() => {
+                            newDeptName.value = ''; // Clear input field
+                            fetchData(); // Refresh the department list
+                        })
+                        .catch(e => {
+                            error.value = e.message;
+                        });
+                };
+
+                // Delete a department
+                const deleteDepartment = (id) => {
+                    axios.delete(`/depts/${id}`)
+                        .then(() => {
+                            fetchData(); // Refresh the department list
+                        })
+                        .catch(e => {
+                            error.value = e.message;
+                        });
+                };
+
+                // Start editing a department
+                const startEdit = (dept) => {
+                    editingDept.value = { ...dept }; // Create a copy of the department for editing
+                };
+
+                // Cancel editing
+                const cancelEdit = () => {
+                    editingDept.value = null; // Hide the edit form
+                };
+
+                // Update a department
+                const updateDepartment = () => {
+                    if (!editingDept.value.name.trim()) {
+                        alert('部門名稱不能為空');
+                        return;
+                    }
+
+                    axios.put(`/depts/${editingDept.value.id}`, editingDept.value)
+                        .then(() => {
+                            fetchData(); // Refresh the department list
+                            cancelEdit(); // Hide the edit form
+                        })
+                        .catch(e => {
+                            error.value = e.message;
+                        });
+                };
+
+                // Call fetchData when component is mounted
+                onMounted(() => {
+                    fetchData();
+                });
+
+                return {
+                    departments,
+                    loading,
+                    error,
+                    newDeptName,
+                    addDepartment,
+                    deleteDepartment,
+                    editingDept,
+                    startEdit,
+                    cancelEdit,
+                    updateDepartment
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

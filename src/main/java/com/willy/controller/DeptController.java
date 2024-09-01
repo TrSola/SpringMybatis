@@ -5,7 +5,12 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 
 import org.slf4j.Logger;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.willy.pojo.Dept;
@@ -31,5 +36,27 @@ public class DeptController {
 		List<Dept> deptList = deptService.list();
 		
 		return Result.success(deptList);
+	}
+	
+	@DeleteMapping("/depts/{id}")
+	public Result delete(@PathVariable Integer id) {
+		log.info("根據id刪除部門:{}", id);
+		deptService.delete(id);
+		return Result.success();
+	}
+	
+	@PostMapping("/depts")
+	public Result add(@RequestBody Dept dept) {
+		log.info("新增部門：{}", dept);
+		deptService.add(dept);
+		return Result.success();
+	}
+	
+	@PutMapping("/depts/{id}")
+	public Result update(@PathVariable Integer id ,@RequestBody Dept dept) {
+		log.info("根據id更新部門:{}", dept);
+		dept.setId(id);
+		deptService.update(dept);
+		return Result.success();
 	}
 }

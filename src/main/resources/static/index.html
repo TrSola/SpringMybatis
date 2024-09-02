@@ -3,61 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vue.js with Spring Boot</title>
+    <title>Employee Management</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid #ddd;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .form-container {
+            margin-bottom: 20px;
+        }
+        .form-container input, .form-container select {
+            margin-right: 10px;
+        }
+        .error {
+            color: red;
+        }
+        .checkbox-column {
+            width: 30px;
+        }
+    </style>
 </head>
 <body>
     <div id="app">
-        <h1>Departments</h1>
+        <h1>Employee Management</h1>
 
-        <!-- 新增部門表單 -->
-        <form @submit.prevent="addDepartment">
-            <label for="deptName">部門名稱:</label>
-            <input type="text" id="deptName" v-model="newDeptName" placeholder="輸入部門名稱" required>
-            <button type="submit">新增部門</button>
-        </form>
+        <!-- Search Form -->
+        <div class="form-container">
+            <h2>Search Employees</h2>
+            <form @submit.prevent="searchEmployees">
+                <label for="searchName">Name:</label>
+                <input type="text" id="searchName" v-model="searchParams.name" placeholder="Name">
 
-        <!-- 編輯部門表單 -->
-        <div v-if="editingDept">
-            <h2>修改部門</h2>
-            <label for="editDeptName">部門名稱:</label>
-            <input type="text" id="editDeptName" v-model="editingDept.name" placeholder="輸入部門名稱" required>
-            <button @click="updateDepartment">確認修改</button>
-            <button @click="cancelEdit">取消</button>
+                <label for="searchGender">Gender:</label>
+                <select id="searchGender" v-model="searchParams.gender">
+                    <option value="">All</option>
+                    <option value="1">男</option>
+                    <option value="2">女</option>
+                </select>
+
+                <label for="searchBegin">Entry Date Start:</label>
+                <input type="date" id="searchBegin" v-model="searchParams.begin">
+
+                <label for="searchEnd">Entry Date End:</label>
+                <input type="date" id="searchEnd" v-model="searchParams.end">
+
+                <button type="submit">Search</button>
+            </form>
         </div>
 
-        <!-- 錯誤與加載顯示 -->
-        <div v-if="loading">Loading...</div>
-        <div v-if="error" style="color: red;">Error: {{ error }}</div>
+        <!-- New Employee Form -->
+        <div class="form-container">
+            <h2>Add New Employee</h2>
+            <form @submit.prevent="addEmployee">
+                <label for="empUsername">Username:</label>
+                <input type="text" id="empUsername" v-model="newEmployee.username" placeholder="Username" required>
+                
+                <label for="empPassword">Password:</label>
+                <input type="password" id="empPassword" v-model="newEmployee.password" placeholder="Password" required>
+                
+                <label for="empGender">Gender:</label>
+                <select id="empGender" v-model="newEmployee.gender" required>
+                    <option value="1">女</option>
+                    <option value="2">男</option>
+                </select>
+                
+                <label for="empImage">Image URL:</label>
+                <input type="text" id="empImage" v-model="newEmployee.image" placeholder="Image URL">
+                
+                <label for="empJob">Job:</label>
+                <input type="number" id="empJob" v-model="newEmployee.job" placeholder="Job" required>
+                
+                <label for="empEntrydate">Entry Date:</label>
+                <input type="date" id="empEntrydate" v-model="newEmployee.entrydate" required>
+                
+                <label for="empDeptId">Department ID:</label>
+                <input type="number" id="empDeptId" v-model="newEmployee.deptId" placeholder="Department ID" required>
 
-        <!-- 部門列表 -->
-        <template v-if="departments.length">
+                <button type="submit">Add Employee</button>
+            </form>
+        </div>
+
+        <!-- Edit Employee Form -->
+        <div v-if="editingEmployee" class="form-container">
+            <h2>Edit Employee</h2>
+            <form @submit.prevent="updateEmployee">
+                <input type="hidden" v-model="editingEmployee.id">
+                
+                <label for="editEmpUsername">Username:</label>
+                <input type="text" id="editEmpUsername" v-model="editingEmployee.username" required>
+                
+                <label for="editEmpPassword">Password:</label>
+                <input type="password" id="editEmpPassword" v-model="editingEmployee.password">
+                
+                <label for="editEmpGender">Gender:</label>
+                <select id="editEmpGender" v-model="editingEmployee.gender" required>
+                    <option value="0">Male</option>
+                    <option value="1">Female</option>
+                </select>
+                
+                <label for="editEmpImage">Image URL:</label>
+                <input type="text" id="editEmpImage" v-model="editingEmployee.image">
+                
+                <label for="editEmpJob">Job:</label>
+                <input type="number" id="editEmpJob" v-model="editingEmployee.job" required>
+                
+                <label for="editEmpEntrydate">Entry Date:</label>
+                <input type="date" id="editEmpEntrydate" v-model="editingEmployee.entrydate" required>
+                
+                <label for="editEmpDeptId">Department ID:</label>
+                <input type="number" id="editEmpDeptId" v-model="editingEmployee.deptId" required>
+
+                <button type="submit">Update Employee</button>
+                <button type="button" @click="cancelEdit">Cancel</button>
+            </form>
+        </div>
+
+        <!-- Error and Loading Indicators -->
+        <div v-if="loading">Loading...</div>
+        <div v-if="error" class="error">Error: {{ error }}</div>
+
+        <!-- Employee Table -->
+        <template v-if="employees.length">
             <table>
                 <thead>
                     <tr>
-                        <th>用戶ID</th>
-                        <th>部門名稱</th>
-                        <th>操作</th>
+                        <th class="checkbox-column">
+                            <input type="checkbox" v-model="selectAll" @change="toggleSelectAll">
+                        </th>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Gender</th>
+                        <th>Image</th>
+                        <th>Job</th>
+                        <th>Entry Date</th>
+                        <th>Department ID</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="dept in departments" :key="dept.id">
-                        <td>{{ dept.id }}</td>
-                        <td>{{ dept.name }}</td>
+                    <tr v-for="employee in employees" :key="employee.id">
+                        <td class="checkbox-column">
+                            <input type="checkbox" :value="employee.id" v-model="selectedIds">
+                        </td>
+                        <td>{{ employee.id }}</td>
+                        <td>{{ employee.username }}</td>
+                        <td>{{ employee.password }}</td>
+                        <td>{{ employee.gender === 0 ? 'Male' : 'Female' }}</td>
+                        <td><img :src="employee.image" alt="Employee Image" style="width: 50px; height: auto;"></td>
+                        <td>{{ employee.job }}</td>
+                        <td>{{ employee.entrydate }}</td>
+                        <td>{{ employee.deptId }}</td>
                         <td>
-                            <button @click="startEdit(dept)">修改</button>
-                            <button @click="deleteDepartment(dept.id)">刪除</button>
+                            <button @click="startEdit(employee)">Edit</button>
+                            <button @click="deleteEmployee(employee.id)">Delete</button>
                         </td>
                     </tr>
                 </tbody>
             </table>
 
-            <!-- 分頁控制 -->
+            <!-- Pagination Controls -->
             <div>
-                <button @click="prevPage" :disabled="currentPage === 1">上一頁</button>
+                <button @click="prevPage" :disabled="currentPage === 1">Previous</button>
                 <span>Page {{ currentPage }} of {{ totalPages }}</span>
-                <button @click="nextPage" :disabled="currentPage === totalPages">下一頁</button>
+                <button @click="nextPage" :disabled="currentPage === totalPages">Next</button>
+            </div>
+
+            <!-- Batch Delete Button -->
+            <div>
+                <button @click="batchDelete" :disabled="selectedIds.length === 0">刪除選中</button>
             </div>
         </template>
     </div>
@@ -67,25 +197,42 @@
 
         createApp({
             setup() {
-                const departments = ref([]);
+                const employees = ref([]);
                 const loading = ref(false);
                 const error = ref(null);
-                const newDeptName = ref('');
-                const editingDept = ref(null);
+                const newEmployee = ref({
+                    username: '',
+                    password: '',
+                    gender: 0,
+                    image: '',
+                    job: null,
+                    entrydate: '',
+                    deptId: null
+                });
+                const editingEmployee = ref(null);
+
+                const searchParams = ref({
+                    name: '',
+                    gender: '',
+                    begin: '',
+                    end: ''
+                });
 
                 const currentPage = ref(1);
                 const totalPages = ref(1);
-                const pageSize = 5; // 每頁顯示的部門數量
+                const pageSize = 5; // Number of items per page
 
-                // Fetch departments data and handle response
-                const fetchData = (page = 1) => {
+                const selectAll = ref(false);
+                const selectedIds = ref([]);
+
+                const fetchEmployees = (page = 1) => {
                     loading.value = true;
                     error.value = null;
 
-                    axios.get(`/depts?page=${page}&size=${pageSize}`)
+                    axios.get(`/emps?page=${page}&pageSize=${pageSize}`, { params: searchParams.value })
                         .then(response => {
-                            departments.value = response.data.data;
-                            totalPages.value = Math.ceil(response.data.total / pageSize) || 1; // 確保 totalPages 至少為 1
+                            employees.value = response.data.data.rows;
+                            totalPages.value = Math.ceil(response.data.data.total / pageSize);
                         })
                         .catch(e => {
                             error.value = e.message;
@@ -95,95 +242,113 @@
                         });
                 };
 
-                // Add a new department
-                const addDepartment = () => {
-                    if (!newDeptName.value.trim()) {
-                        alert('部門名稱不能為空');
-                        return;
-                    }
+                const searchEmployees = () => {
+                    currentPage.value = 1;
+                    fetchEmployees(currentPage.value);
+                };
 
-                    axios.post('/depts', { name: newDeptName.value })
+                const addEmployee = () => {
+                    axios.post('/emps', newEmployee.value)
                         .then(() => {
-                            newDeptName.value = ''; // Clear input field
-                            fetchData(currentPage.value); // Refresh the department list
+                            fetchEmployees(currentPage.value);
+                            newEmployee.value = {
+                                username: '',
+                                password: '',
+                                gender: 0,
+                                image: '',
+                                job: null,
+                                entrydate: '',
+                                deptId: null
+                            };
                         })
                         .catch(e => {
                             error.value = e.message;
                         });
                 };
 
-                // Delete a department
-                const deleteDepartment = (id) => {
-                    axios.delete(`/depts/${id}`)
+                const startEdit = (employee) => {
+                    editingEmployee.value = { ...employee };
+                };
+
+                const updateEmployee = () => {
+                    axios.put(`/emps/${editingEmployee.value.id}`, editingEmployee.value)
                         .then(() => {
-                            fetchData(currentPage.value); // Refresh the department list
+                            fetchEmployees(currentPage.value);
+                            editingEmployee.value = null;
                         })
                         .catch(e => {
                             error.value = e.message;
                         });
                 };
 
-                // Start editing a department
-                const startEdit = (dept) => {
-                    editingDept.value = { ...dept }; // Create a copy of the department for editing
-                };
-
-                // Cancel editing
                 const cancelEdit = () => {
-                    editingDept.value = null; // Hide the edit form
+                    editingEmployee.value = null;
                 };
 
-                // Update a department
-                const updateDepartment = () => {
-                    if (!editingDept.value.name.trim()) {
-                        alert('部門名稱不能為空');
-                        return;
-                    }
-
-                    axios.put(`/depts/${editingDept.value.id}`, editingDept.value)
+                const deleteEmployee = (id) => {
+                    axios.delete(`/emps/${id}`)
                         .then(() => {
-                            fetchData(currentPage.value); // Refresh the department list
-                            cancelEdit(); // Hide the edit form
+                            fetchEmployees(currentPage.value);
                         })
                         .catch(e => {
                             error.value = e.message;
                         });
                 };
 
-                // Go to the previous page
+                const batchDelete = () => {
+                    if (selectedIds.value.length === 0) return;
+
+                    axios.delete(`/emps/${selectedIds.value}`, { ids: selectedIds.value })
+                        .then(() => {          fetchEmployees(currentPage.value);
+                            selectedIds.value = [];
+                        })
+                        .catch(e => {
+                            error.value = e.message;
+                        });
+                };
+
+                const toggleSelectAll = () => {
+                    selectedIds.value = selectAll.value ? employees.value.map(e => e.id) : [];
+                };
+
                 const prevPage = () => {
                     if (currentPage.value > 1) {
                         currentPage.value--;
-                        fetchData(currentPage.value);
+                        fetchEmployees(currentPage.value);
                     }
                 };
 
-                // Go to the next page
                 const nextPage = () => {
                     if (currentPage.value < totalPages.value) {
                         currentPage.value++;
-                        fetchData(currentPage.value);
+                        fetchEmployees(currentPage.value);
                     }
                 };
 
-                // Call fetchData when component is mounted
                 onMounted(() => {
-                    fetchData();
+                    fetchEmployees(currentPage.value);
                 });
 
                 return {
-                    departments,
+                    employees,
                     loading,
                     error,
-                    newDeptName,
-                    addDepartment,
-                    deleteDepartment,
-                    editingDept,
-                    startEdit,
-                    cancelEdit,
-                    updateDepartment,
+                    newEmployee,
+                    editingEmployee,
+                    searchParams,
                     currentPage,
                     totalPages,
+                    selectAll,
+                    selectedIds,
+                    fetchEmployees,
+                    searchEmployees,
+                    addEmployee,
+                    startEdit,
+                    updateEmployee,
+                    cancelEdit,
+                    deleteEmployee,
+                    batchDelete,
+                    toggleSelectAll,
                     prevPage,
                     nextPage
                 };

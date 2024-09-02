@@ -9,10 +9,11 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import com.willy.pojo.Dept;
+import com.willy.pojo.Emp;
 
 @Mapper
 public interface DeptMapper {
-
+ 
 	@Select("select * from dept")
 	List<Dept> list();
 
@@ -24,5 +25,7 @@ public interface DeptMapper {
 
 	@Update("update dept set name = #{name}, update_time = #{updateTime} where id = #{id}")
 	void update(Dept dept);
+	
+	
 
 }

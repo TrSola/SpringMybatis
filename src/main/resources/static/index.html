@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vue.js with Spring Boot</title>
-<script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue.js with Spring Boot</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
     <div id="app">
@@ -52,6 +52,13 @@
                     </tr>
                 </tbody>
             </table>
+
+            <!-- 分頁控制 -->
+            <div>
+                <button @click="prevPage" :disabled="currentPage === 1">上一頁</button>
+                <span>Page {{ currentPage }} of {{ totalPages }}</span>
+                <button @click="nextPage" :disabled="currentPage === totalPages">下一頁</button>
+            </div>
         </template>
     </div>
 
@@ -66,14 +73,19 @@
                 const newDeptName = ref('');
                 const editingDept = ref(null);
 
+                const currentPage = ref(1);
+                const totalPages = ref(1);
+                const pageSize = 5; // 每頁顯示的部門數量
+
                 // Fetch departments data and handle response
-                const fetchData = () => {
+                const fetchData = (page = 1) => {
                     loading.value = true;
                     error.value = null;
 
-                    axios.get('/depts')
+                    axios.get(`/depts?page=${page}&size=${pageSize}`)
                         .then(response => {
                             departments.value = response.data.data;
+                            totalPages.value = Math.ceil(response.data.total / pageSize) || 1; // 確保 totalPages 至少為 1
                         })
                         .catch(e => {
                             error.value = e.message;
@@ -93,7 +105,7 @@
                     axios.post('/depts', { name: newDeptName.value })
                         .then(() => {
                             newDeptName.value = ''; // Clear input field
-                            fetchData(); // Refresh the department list
+                            fetchData(currentPage.value); // Refresh the department list
                         })
                         .catch(e => {
                             error.value = e.message;
@@ -104,7 +116,7 @@
                 const deleteDepartment = (id) => {
                     axios.delete(`/depts/${id}`)
                         .then(() => {
-                            fetchData(); // Refresh the department list
+                            fetchData(currentPage.value); // Refresh the department list
                         })
                         .catch(e => {
                             error.value = e.message;
@@ -130,12 +142,28 @@
 
                     axios.put(`/depts/${editingDept.value.id}`, editingDept.value)
                         .then(() => {
-                            fetchData(); // Refresh the department list
+                            fetchData(currentPage.value); // Refresh the department list
                             cancelEdit(); // Hide the edit form
                         })
                         .catch(e => {
                             error.value = e.message;
                         });
+                };
+
+                // Go to the previous page
+                const prevPage = () => {
+                    if (currentPage.value > 1) {
+                        currentPage.value--;
+                        fetchData(currentPage.value);
+                    }
+                };
+
+                // Go to the next page
+                const nextPage = () => {
+                    if (currentPage.value < totalPages.value) {
+                        currentPage.value++;
+                        fetchData(currentPage.value);
+                    }
                 };
 
                 // Call fetchData when component is mounted
@@ -153,7 +181,11 @@
                     editingDept,
                     startEdit,
                     cancelEdit,
-                    updateDepartment
+                    updateDepartment,
+                    currentPage,
+                    totalPages,
+                    prevPage,
+                    nextPage
                 };
             }
         }).mount('#app');

@@ -7,6 +7,7 @@ public class Emp {
 	private Integer id;
 	private String username;
 	private String password;
+	private String name;
 	private Short gender;
 	private String image;
 	private Short job;
@@ -18,12 +19,13 @@ public class Emp {
 		super();
 		// TODO Auto-generated constructor stub
 	}
-	public Emp(Integer id, String username, String password, Short gender, String image, Short job, LocalDate entrydate,
-			Integer deptId, LocalDateTime createTime, LocalDateTime updateTime) {
+	public Emp(Integer id, String username, String password, String name, Short gender, String image, Short job,
+			LocalDate entrydate, Integer deptId, LocalDateTime createTime, LocalDateTime updateTime) {
 		super();
 		this.id = id;
 		this.username = username;
 		this.password = password;
+		this.name = name;
 		this.gender = gender;
 		this.image = image;
 		this.job = job;
@@ -49,6 +51,12 @@ public class Emp {
 	}
 	public void setPassword(String password) {
 		this.password = password;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
 	}
 	public Short getGender() {
 		return gender;
@@ -94,11 +102,10 @@ public class Emp {
 	}
 	@Override
 	public String toString() {
-		return "Emp [id=" + id + ", username=" + username + ", password=" + password + ", gender=" + gender + ", image="
-				+ image + ", job=" + job + ", entrydate=" + entrydate + ", deptId=" + deptId + ", createTime="
-				+ createTime + ", updateTime=" + updateTime + "]";
+		return "Emp [id=" + id + ", username=" + username + ", password=" + password + ", name=" + name + ", gender="
+				+ gender + ", image=" + image + ", job=" + job + ", entrydate=" + entrydate + ", deptId=" + deptId
+				+ ", createTime=" + createTime + ", updateTime=" + updateTime + "]";
 	}
-	
 	
 }
 

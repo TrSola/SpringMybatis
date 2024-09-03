@@ -74,8 +74,8 @@
                 <label for="empUsername">Username:</label>
                 <input type="text" id="empUsername" v-model="newEmployee.username" placeholder="Username" required>
                 
-                <label for="empPassword">Password:</label>
-                <input type="password" id="empPassword" v-model="newEmployee.password" placeholder="Password" required>
+                <label for="empName">Name:</label>
+                <input type="text" id="empName" v-model="newEmployee.name" placeholder="Name" required>
                 
                 <label for="empGender">Gender:</label>
                 <select id="empGender" v-model="newEmployee.gender" required>
@@ -108,8 +108,8 @@
                 <label for="editEmpUsername">Username:</label>
                 <input type="text" id="editEmpUsername" v-model="editingEmployee.username" required>
                 
-                <label for="editEmpPassword">Password:</label>
-                <input type="password" id="editEmpPassword" v-model="editingEmployee.password">
+                <label for="editEmpName">Name:</label>
+                <input type="text" id="editEmpName" v-model="editingEmployee.name">
                 
                 <label for="editEmpGender">Gender:</label>
                 <select id="editEmpGender" v-model="editingEmployee.gender" required>
@@ -148,7 +148,7 @@
                         </th>
                         <th>ID</th>
                         <th>Username</th>
-                        <th>Password</th>
+                        <th>Name</th>
                         <th>Gender</th>
                         <th>Image</th>
                         <th>Job</th>
@@ -164,7 +164,7 @@
                         </td>
                         <td>{{ employee.id }}</td>
                         <td>{{ employee.username }}</td>
-                        <td>{{ employee.password }}</td>
+                        <td>{{ employee.name }}</td>
                         <td>{{ employee.gender === 0 ? 'Male' : 'Female' }}</td>
                         <td><img :src="employee.image" alt="Employee Image" style="width: 50px; height: auto;"></td>
                         <td>{{ employee.job }}</td>
@@ -202,7 +202,7 @@
                 const error = ref(null);
                 const newEmployee = ref({
                     username: '',
-                    password: '',
+                    name: '',
                     gender: 0,
                     image: '',
                     job: null,
@@ -250,16 +250,16 @@
                 const addEmployee = () => {
                     axios.post('/emps', newEmployee.value)
                         .then(() => {
-                            fetchEmployees(currentPage.value);
                             newEmployee.value = {
                                 username: '',
-                                password: '',
+                                name: '',
                                 gender: 0,
                                 image: '',
                                 job: null,
                                 entrydate: '',
                                 deptId: null
                             };
+                            fetchEmployees(currentPage.value);
                         })
                         .catch(e => {
                             error.value = e.message;
@@ -273,8 +273,8 @@
                 const updateEmployee = () => {
                     axios.put(`/emps/${editingEmployee.value.id}`, editingEmployee.value)
                         .then(() => {
-                            fetchEmployees(currentPage.value);
                             editingEmployee.value = null;
+                            fetchEmployees(currentPage.value);
                         })
                         .catch(e => {
                             error.value = e.message;
@@ -296,19 +296,15 @@
                 };
 
                 const batchDelete = () => {
-                    if (selectedIds.value.length === 0) return;
-
-                    axios.delete(`/emps/${selectedIds.value}`, { ids: selectedIds.value })
-                        .then(() => {          fetchEmployees(currentPage.value);
+                    axios.delete(`/emps?ids=${selectedIds.value.join(',')}`)
+                        .then(() => {
+                            fetchEmployees(currentPage.value);
                             selectedIds.value = [];
+                            selectAll.value = false;
                         })
                         .catch(e => {
                             error.value = e.message;
                         });
-                };
-
-                const toggleSelectAll = () => {
-                    selectedIds.value = selectAll.value ? employees.value.map(e => e.id) : [];
                 };
 
                 const prevPage = () => {
@@ -322,6 +318,14 @@
                     if (currentPage.value < totalPages.value) {
                         currentPage.value++;
                         fetchEmployees(currentPage.value);
+                    }
+                };
+
+                const toggleSelectAll = () => {
+                    if (selectAll.value) {
+                        selectedIds.value = employees.value.map(emp => emp.id);
+                    } else {
+                        selectedIds.value = [];
                     }
                 };
 
@@ -340,7 +344,6 @@
                     totalPages,
                     selectAll,
                     selectedIds,
-                    fetchEmployees,
                     searchEmployees,
                     addEmployee,
                     startEdit,
@@ -348,9 +351,9 @@
                     cancelEdit,
                     deleteEmployee,
                     batchDelete,
-                    toggleSelectAll,
                     prevPage,
-                    nextPage
+                    nextPage,
+                    toggleSelectAll
                 };
             }
         }).mount('#app');

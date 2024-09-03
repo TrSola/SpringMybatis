@@ -25,4 +25,9 @@ public interface EmpMapper {
 	
 	@Insert("insert into emp(username, name, gender, image, job, entrydate, dept_id, create_time, update_time) values(#{username}, #{name}, #{gender}, #{image}, #{job}, #{entrydate}, #{deptId}, #{createTime}, #{updateTime})")
 	void insert(Emp emp);
+
+	@Select("select * from emp where id = #{id}")
+	public Emp getById(Integer id);
+
+	void update(Emp emp);
 }

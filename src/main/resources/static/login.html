@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登入</title>
+    <script src="https://unpkg.com/vue@3"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <h1>登入</h1>
+        <form @submit.prevent="handleSubmit">
+            <input v-model="username" type="text" placeholder="用戶名" required />
+            <input v-model="password" type="password" placeholder="密碼" required />
+            <button type="submit">登入</button>
+            <div v-if="error" class="error">{{ error }}</div>
+        </form>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+
+        createApp({
+            setup() {
+                const username = ref('');
+                const password = ref('');
+                const error = ref('');
+
+                const handleSubmit = async () => {
+                    try {
+                        const response = await axios.post('/login.html/login', {
+                            username: username.value,
+                            password: password.value
+                        });
+
+                        if (response.data.success) {
+                            // 获取 JWT
+                            const jwt = response.data.data;
+                            // 存储到 localStorage
+                            localStorage.setItem('token', jwt);
+                            // 跳转到主页面
+                            window.location.href = '/'; // 或 '/index.html'
+                        } else {
+                            error.value = '用戶名或密碼錯誤';
+                        }
+                    } catch (err) {
+                        error.value = '發生錯誤，請稍後再試';
+                    }
+                };
+
+                return {
+                    username,
+                    password,
+                    error,
+                    handleSubmit
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>

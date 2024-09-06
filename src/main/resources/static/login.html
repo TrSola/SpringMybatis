@@ -34,13 +34,16 @@
                             password: password.value
                         });
 
-                        if (response.data.success) {
+                        
+                        if (response.data.msg == "success") {
                             // 获取 JWT
                             const jwt = response.data.data;
+                            console.log(jwt)
                             // 存储到 localStorage
-                            localStorage.setItem('token', jwt);
+                            localStorage.setItem('Authorization', jwt);
                             // 跳转到主页面
-                            window.location.href = '/'; // 或 '/index.html'
+  console.log('login success')
+window.location.href = '/index.html'; 
                         } else {
                             error.value = '用戶名或密碼錯誤';
                         }

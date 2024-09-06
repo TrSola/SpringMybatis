@@ -30,7 +30,7 @@ public class LoginController {
 		    claims.put("name", e.getName()); // 添加姓名聲明
 		    claims.put("username", e.getUsername()); // 添加用戶名聲明
 
-		    String jwt = JwtUtils.generateToken(claims, 0); // jwt 包含了當前登錄的員工信息
+		    String jwt = JwtUtils.generateToken(claims, 2*60*60*1000); // jwt 包含了當前登錄的員工信息
 		    return Result.success(jwt); // 返回成功結果和 jwt
 		}
 

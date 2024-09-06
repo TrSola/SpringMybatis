@@ -6,45 +6,13 @@
     <title>Employee Management</title>
     <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        table, th, td {
-            border: 1px solid #ddd;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f4f4f4;
-        }
-        .form-container {
-            margin-bottom: 20px;
-        }
-        .form-container input, .form-container select {
-            margin-right: 10px;
-        }
-        .error {
-            color: red;
-        }
-        .checkbox-column {
-            width: 30px;
-        }
-    </style>
 </head>
 <body>
     <div id="app">
         <h1>Employee Management</h1>
 
         <!-- Search Form -->
-        <div class="form-container">
+        <div>
             <h2>Search Employees</h2>
             <form @submit.prevent="searchEmployees">
                 <label for="searchName">Name:</label>
@@ -68,7 +36,7 @@
         </div>
 
         <!-- New Employee Form -->
-        <div class="form-container">
+        <div>
             <h2>Add New Employee</h2>
             <form @submit.prevent="addEmployee">
                 <label for="empUsername">Username:</label>
@@ -100,7 +68,7 @@
         </div>
 
         <!-- Edit Employee Form -->
-        <div v-if="editingEmployee" class="form-container">
+        <div v-if="editingEmployee">
             <h2>Edit Employee</h2>
             <form @submit.prevent="updateEmployee">
                 <input type="hidden" v-model="editingEmployee.id">
@@ -136,16 +104,14 @@
 
         <!-- Error and Loading Indicators -->
         <div v-if="loading">Loading...</div>
-        <div v-if="error" class="error">Error: {{ error }}</div>
+        <div v-if="error">{{ error }}</div>
 
         <!-- Employee Table -->
         <template v-if="employees.length">
             <table>
                 <thead>
                     <tr>
-                        <th class="checkbox-column">
-                            <input type="checkbox" v-model="selectAll" @change="toggleSelectAll">
-                        </th>
+                        <th><input type="checkbox" v-model="selectAll" @change="toggleSelectAll"></th>
                         <th>ID</th>
                         <th>Username</th>
                         <th>Name</th>
@@ -159,9 +125,7 @@
                 </thead>
                 <tbody>
                     <tr v-for="employee in employees" :key="employee.id">
-                        <td class="checkbox-column">
-                            <input type="checkbox" :value="employee.id" v-model="selectedIds">
-                        </td>
+                        <td><input type="checkbox" :value="employee.id" v-model="selectedIds"></td>
                         <td>{{ employee.id }}</td>
                         <td>{{ employee.username }}</td>
                         <td>{{ employee.name }}</td>
@@ -193,170 +157,171 @@
     </div>
 
     <script>
-        const { createApp, ref, onMounted } = Vue;
+    const { createApp, ref, onMounted } = Vue;
 
-        createApp({
-            setup() {
-                const employees = ref([]);
-                const loading = ref(false);
-                const error = ref(null);
-                const newEmployee = ref({
-                    username: '',
-                    name: '',
-                    gender: 0,
-                    image: '',
-                    job: null,
-                    entrydate: '',
-                    deptId: null
-                });
-                const editingEmployee = ref(null);
+    createApp({
+        setup() {
+            const employees = ref([]);
+            const loading = ref(false);
+            const error = ref(null);
+            const newEmployee = ref({
+                username: '',
+                name: '',
+                gender: 0,
+                image: '',
+                job: null,
+                entrydate: '',
+                deptId: null
+            });
+            const editingEmployee = ref(null);
+            const searchParams = ref({
+                name: '',
+                gender: '',
+                begin: '',
+                end: ''
+            });
+            const currentPage = ref(1);
+            const totalPages = ref(1);
+            const pageSize = 5;
+            const selectAll = ref(false);
+            const selectedIds = ref([]);
 
-                const searchParams = ref({
-                    name: '',
-                    gender: '',
-                    begin: '',
-                    end: ''
-                });
+            // 使用 axios 攔截器來統一處理 token
+            axios.interceptors.request.use(config => {
+                const token = localStorage.getItem('Authorization');
+                if (token) {
+                    config.headers['Authorization'] = token;
+                }
+                return config;
+            }, error => {
+                return Promise.reject(error);
+            });
 
-                const currentPage = ref(1);
-                const totalPages = ref(1);
-                const pageSize = 5; // Number of items per page
+            const fetchEmployees = (page = 1) => {
+                loading.value = true;
+                error.value = null;
 
-                const selectAll = ref(false);
-                const selectedIds = ref([]);
+                axios.get(`/emps?page=${page}&pageSize=${pageSize}`, { params: searchParams.value })
+                    .then(response => {
+                        employees.value = response.data.data.rows;
+                        totalPages.value = Math.ceil(response.data.data.total / pageSize);
+                    })
+                    .catch(e => {
+                        error.value = e.message;
+                    })
+                    .finally(() => {
+                        loading.value = false;
+                    });
+            };
 
-                const fetchEmployees = (page = 1) => {
-                    loading.value = true;
-                    error.value = null;
+            const searchEmployees = () => {
+                currentPage.value = 1;
+                fetchEmployees(currentPage.value);
+            };
 
-                    axios.get(`/emps?page=${page}&pageSize=${pageSize}`, { params: searchParams.value })
-                        .then(response => {
-                            employees.value = response.data.data.rows;
-                            totalPages.value = Math.ceil(response.data.data.total / pageSize);
-                        })
-                        .catch(e => {
-                            error.value = e.message;
-                        })
-                        .finally(() => {
-                            loading.value = false;
-                        });
-                };
-
-                const searchEmployees = () => {
-                    currentPage.value = 1;
-                    fetchEmployees(currentPage.value);
-                };
-
-                const addEmployee = () => {
-                    axios.post('/emps', newEmployee.value)
-                        .then(() => {
-                            newEmployee.value = {
-                                username: '',
-                                name: '',
-                                gender: 0,
-                                image: '',
-                                job: null,
-                                entrydate: '',
-                                deptId: null
-                            };
-                            fetchEmployees(currentPage.value);
-                        })
-                        .catch(e => {
-                            error.value = e.message;
-                        });
-                };
-
-                const startEdit = (employee) => {
-                    editingEmployee.value = { ...employee };
-                };
-
-                const updateEmployee = () => {
-                    axios.put(`/emps/${editingEmployee.value.id}`, editingEmployee.value)
-                        .then(() => {
-                            editingEmployee.value = null;
-                            fetchEmployees(currentPage.value);
-                        })
-                        .catch(e => {
-                            error.value = e.message;
-                        });
-                };
-
-                const cancelEdit = () => {
-                    editingEmployee.value = null;
-                };
-
-                const deleteEmployee = (id) => {
-                    axios.delete(`/emps/${id}`)
-                        .then(() => {
-                            fetchEmployees(currentPage.value);
-                        })
-                        .catch(e => {
-                            error.value = e.message;
-                        });
-                };
-
-                const batchDelete = () => {
-                    axios.delete(`/emps?ids=${selectedIds.value.join(',')}`)
-                        .then(() => {
-                            fetchEmployees(currentPage.value);
-                            selectedIds.value = [];
-                            selectAll.value = false;
-                        })
-                        .catch(e => {
-                            error.value = e.message;
-                        });
-                };
-
-                const prevPage = () => {
-                    if (currentPage.value > 1) {
-                        currentPage.value--;
+            const addEmployee = () => {
+                axios.post('/emps', newEmployee.value)
+                    .then(() => {
+                        newEmployee.value = {
+                            username: '',
+                            name: '',
+                            gender: 0,
+                            image: '',
+                            job: null,
+                            entrydate: '',
+                            deptId: null
+                        };
                         fetchEmployees(currentPage.value);
-                    }
-                };
+                    })
+                    .catch(e => {
+                        error.value = e.message;
+                    });
+            };
 
-                const nextPage = () => {
-                    if (currentPage.value < totalPages.value) {
-                        currentPage.value++;
+            const updateEmployee = () => {
+                axios.put(`/emps/${editingEmployee.value.id}`, editingEmployee.value)
+                    .then(() => {
+                        editingEmployee.value = null;
                         fetchEmployees(currentPage.value);
-                    }
-                };
+                    })
+                    .catch(e => {
+                        error.value = e.message;
+                    });
+            };
 
-                const toggleSelectAll = () => {
-                    if (selectAll.value) {
-                        selectedIds.value = employees.value.map(emp => emp.id);
-                    } else {
+            const deleteEmployee = (id) => {
+                axios.delete(`/emps/${id}`)
+                    .then(() => {
+                        fetchEmployees(currentPage.value);
+                    })
+                    .catch(e => {
+                        error.value = e.message;
+                    });
+            };
+
+            const batchDelete = () => {
+                axios.delete('/emps', {
+                    data: { ids: selectedIds.value }
+                })
+                    .then(() => {
                         selectedIds.value = [];
-                    }
-                };
+                        fetchEmployees(currentPage.value);
+                    })
+                    .catch(e => {
+                        error.value = e.message;
+                    });
+            };
 
-                onMounted(() => {
+            const prevPage = () => {
+                if (currentPage.value > 1) {
+                    currentPage.value--;
                     fetchEmployees(currentPage.value);
-                });
+                }
+            };
 
-                return {
-                    employees,
-                    loading,
-                    error,
-                    newEmployee,
-                    editingEmployee,
-                    searchParams,
-                    currentPage,
-                    totalPages,
-                    selectAll,
-                    selectedIds,
-                    searchEmployees,
-                    addEmployee,
-                    startEdit,
-                    updateEmployee,
-                    cancelEdit,
-                    deleteEmployee,
-                    batchDelete,
-                    prevPage,
-                    nextPage,
-                    toggleSelectAll
-                };
-            }
-        }).mount('#app');
-    </script>
+            const nextPage = () => {
+                if (currentPage.value < totalPages.value) {
+                    currentPage.value++;
+                    fetchEmployees(currentPage.value);
+                }
+            };
+
+            const toggleSelectAll = () => {
+                if (selectAll.value) {
+                    selectedIds.value = employees.value.map(emp => emp.id);
+                } else {
+                    selectedIds.value = [];
+                }
+            };
+
+            onMounted(() => {
+                fetchEmployees(currentPage.value);
+            });
+
+            return {
+                employees,
+                loading,
+                error,
+                newEmployee,
+                editingEmployee,
+                searchParams,
+                currentPage,
+                totalPages,
+                selectAll,
+                selectedIds,
+                fetchEmployees,
+                searchEmployees,
+                addEmployee,
+                updateEmployee,
+                deleteEmployee,
+                batchDelete,
+                prevPage,
+                nextPage,
+                toggleSelectAll
+            };
+        }
+    }).mount('#app');
+</script>
+    
 </body>
 </html>
